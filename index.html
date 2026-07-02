@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tidy Drive — Your Google Drive, organized automatically | Joanne Liszewski</title>
+  <meta name="description" content="An automation that files every document in your Google Drive into the right folder by subject — every hour, hands-free.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #084655;
+      --bg-dark: #032830;
+      --bg-card: #0a5163;
+      --bg-soft: #063846;
+      --border: #14657a;
+      --ink: #f2fbfd;
+      --muted: #a9cfd8;
+      --accent: #2bd1f5;
+      --accent-soft: rgba(43, 209, 245, 0.12);
+      --glow: 0 0 18px rgba(43, 209, 245, 0.55);
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 80px 80px;
+      color: var(--ink);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 80px 0; }
+    h1, h2 { font-family: "Playfair Display", Georgia, "Times New Roman", serif; }
+    h2 { font-size: 2rem; letter-spacing: -0.01em; text-align: center; margin-bottom: 8px; }
+    .section-sub { text-align: center; color: var(--muted); margin-bottom: 44px; }
+ 
+    /* Top bar */
+    .topbar {
+      background: var(--bg-dark);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    .topbar .wrap { display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-weight: 600; font-size: 0.95rem; }
+    .brand span { color: var(--muted); font-weight: 400; }
+    .topbar a.mini-cta {
+      color: var(--ink); text-decoration: none; font-size: 0.9rem;
+      border: 1px solid var(--border); border-radius: 8px; padding: 7px 16px;
+      transition: border-color .15s, background .15s;
+    }
+    .topbar a.mini-cta:hover { border-color: var(--accent); background: var(--accent-soft); }
+ 
+    /* Hero */
+    .hero { text-align: center; padding: 110px 0 90px; }
+    .badge {
+      display: inline-block; font-size: 0.8rem; color: var(--accent);
+      background: var(--accent-soft); border: 1px solid rgba(43,209,245,.35);
+      border-radius: 999px; padding: 4px 14px; margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+      line-height: 1.15; letter-spacing: -0.01em;
+      max-width: 820px; margin: 0 auto 22px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); text-shadow: var(--glow); }
+    .hero .sub { font-size: 1.15rem; color: var(--muted); max-width: 620px; margin: 0 auto 36px; }
+    .cta-btn {
+      display: inline-block; background: var(--accent); color: #032830;
+      font-size: 1rem; font-weight: 700; padding: 14px 34px;
+      border-radius: 10px; text-decoration: none; transition: opacity .15s, transform .15s;
+      box-shadow: 0 0 22px rgba(43, 209, 245, 0.35);
+    }
+    .cta-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .cta-note { margin-top: 14px; font-size: 0.88rem; color: var(--muted); }
+ 
+    /* Before / After visual */
+    .visual { padding-top: 0; }
+    .ba-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: stretch; }
+    @media (max-width: 720px) { .ba-grid { grid-template-columns: 1fr; } .ba-arrow { transform: rotate(90deg); margin: -6px auto; } }
+    .panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px; min-height: 280px;
+    }
+    .panel h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+    .panel.before h3 { color: #f87171; }
+    .panel.after h3 { color: #4ade80; }
+    .ba-arrow { display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 1.8rem; }
+    .mess { position: relative; height: 210px; }
+    .file-chip {
+      position: absolute; font-size: 0.78rem; color: var(--muted);
+      background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px; white-space: nowrap;
+    }
+    .file-chip::before { content: "📄 "; }
+    .folder-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 0.9rem;
+    }
+    .folder-row::before { content: "📁"; margin-right: 10px; }
+    .folder-row .name { flex: 1; }
+    .folder-row .count { color: var(--muted); font-size: 0.8rem; }
+ 
+    /* Value prop */
+    .value { background: var(--bg-soft); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 26px;
+      transition: border-color .15s;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card .icon { font-size: 1.5rem; margin-bottom: 12px; }
+    .card strong { display: block; font-size: 1.05rem; margin-bottom: 6px; }
+    .card span { color: var(--muted); font-size: 0.95rem; }
+ 
+    /* Proof */
+    .metric {
+      text-align: center; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 36px; margin-bottom: 22px;
+    }
+    .metric .big { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em; color: var(--accent); }
+    .metric p { color: var(--muted); max-width: 480px; margin: 6px auto 0; }
+    .quotes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+    blockquote {
+      background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+      border-radius: var(--radius); padding: 22px 26px; font-style: italic; color: var(--muted);
+    }
+    blockquote cite { display: block; margin-top: 10px; font-style: normal; font-size: 0.88rem; }
+ 
+    /* How it works */
+    .steps { list-style: none; display: grid; gap: 16px; max-width: 640px; margin: 0 auto; counter-reset: step; }
+    .steps li {
+      counter-increment: step; display: flex; gap: 18px; align-items: flex-start;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+    }
+    .steps li::before {
+      content: counter(step); flex-shrink: 0; width: 34px; height: 34px;
+      border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+      border: 1px solid rgba(43,209,245,.4); font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .steps strong { display: block; margin-bottom: 2px; }
+    .steps span { color: var(--muted); font-size: 0.95rem; }
+ 
+    /* Final CTA */
+    .final { text-align: center; background: var(--bg-soft); border-top: 1px solid var(--border); }
+    .final h2 { margin-bottom: 12px; }
+    .final p { color: var(--muted); margin-bottom: 30px; }
+ 
+    footer {
+      border-top: 1px solid var(--border); text-align: center;
+      padding: 30px 0; font-size: 0.85rem; color: var(--muted);
+    }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+ 
+  <div class="topbar">
+    <div class="wrap">
+      <div class="brand">Joanne Liszewski <span>· Automation</span></div>
+      <a class="mini-cta" href="mailto:joanneliszewski@gmail.com?subject=Organize%20my%20Google%20Drive">Get in touch</a>
+    </div>
+  </div>
+ 
+  <!-- 1. HEADLINE + 4. CTA -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="badge">Running live, right now</div>
+      <h1>Your Google Drive, <em>organized automatically</em> — every hour, hands-free.</h1>
+      <p class="sub">I set up an automation that files every document in your Drive into the right folder by subject, so you never dig through a messy Drive again.</p>
+      <a class="cta-btn" href="mailto:joanneliszewski@gmail.com?subject=Organize%20my%20Google%20Drive">Email me about your Drive</a>
+      <p class="cta-note">I'll reply within one business day with how it would work for you.</p>
+    </div>
+  </section>
+ 
+  <!-- BEFORE / AFTER VISUAL -->
+  <section class="visual">
+    <div class="wrap">
+      <div class="ba-grid">
+        <div class="panel before">
+          <h3>Before — 9:00 AM</h3>
+          <div class="mess">
+            <div class="file-chip" style="top:4%; left:6%; transform:rotate(-4deg);">invoice_march_FINAL.pdf</div>
+            <div class="file-chip" style="top:22%; left:44%; transform:rotate(3deg);">Screenshot (47).png</div>
+            <div class="file-chip" style="top:38%; left:10%; transform:rotate(2deg);">contract-draft-v3.docx</div>
+            <div class="file-chip" style="top:54%; left:38%; transform:rotate(-3deg);">receipts_scan.pdf</div>
+            <div class="file-chip" style="top:70%; left:8%; transform:rotate(4deg);">notes 2.txt</div>
+            <div class="file-chip" style="top:86%; left:30%; transform:rotate(-2deg);">tax_doc_2025??.pdf</div>
+          </div>
+        </div>
+        <div class="ba-arrow">→</div>
+        <div class="panel after">
+          <h3>After — 10:00 AM</h3>
+          <div class="folder-row"><span class="name">Invoices</span><span class="count">32 files</span></div>
+          <div class="folder-row"><span class="name">Contracts</span><span class="count">14 files</span></div>
+          <div class="folder-row"><span class="name">Receipts &amp; Taxes</span><span class="count">58 files</span></div>
+          <div class="folder-row"><span class="name">Screenshots</span><span class="count">21 files</span></div>
+          <div class="folder-row"><span class="name">Notes</span><span class="count">9 files</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 2. VALUE PROP -->
+  <section class="value">
+    <div class="wrap">
+      <h2>Stop losing time to a messy Drive</h2>
+      <p class="section-sub">You keep working the way you always have. The organizing happens for you.</p>
+      <div class="cards">
+        <div class="card"><div class="icon">🔍</div><strong>Find any file in seconds</strong><span>Every document lands in a clearly named folder by topic — no more scrolling through hundreds of loose files.</span></div>
+        <div class="card"><div class="icon">🕐</div><strong>Zero effort on your part</strong><span>It runs in the background every hour. You keep saving files the way you always have; they get sorted for you.</span></div>
+        <div class="card"><div class="icon">🔒</div><strong>Set up once, works forever</strong><span>One-time setup in your own Google account. No new apps to learn, nothing to maintain, no lock-in to me.</span></div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 3. SOCIAL PROOF -->
+  <section class="proof">
+    <div class="wrap">
+      <h2>It's running right now</h2>
+      <p class="section-sub">Live on my own Google Drive, around the clock.</p>
+      <div class="metric">
+        <div class="big">Up to 240 files a day</div>
+        <p>The system runs every hour, 24/7, sorting files by subject into the right folders — and it never touches folders you've already organized.</p>
+      </div>
+      <div class="quotes">
+        <blockquote>
+          "My Drive was a dumping ground — estimates, job photos, insurance paperwork, all in one pile. Now when a customer calls about a job from last spring, I pull up the estimate while they're still on the phone."
+          <cite>— Richard B., owner, drywall repair company</cite>
+        </blockquote>
+        <blockquote>
+          "I used to burn my Sunday nights sorting receipts and contracts so my bookkeeper could find anything. Joanne set this up once and I haven't filed a document since. It just happens."
+          <cite>— Mike W., owner, landscaping company</cite>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- LEVEL 2: HOW IT WORKS -->
+  <section class="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="section-sub">Three steps. None of them are yours.</p>
+      <ol class="steps">
+        <li><div><strong>You save files like you always do</strong><span>Nothing changes about how you work. Drop files anywhere in your Drive.</span></div></li>
+        <li><div><strong>The system reads and sorts them</strong><span>Every hour, it looks at new files, figures out what each one is about, and picks the right folder — creating one if it doesn't exist yet.</span></div></li>
+        <li><div><strong>Your Drive stays organized</strong><span>Files are moved into tidy, topic-based folders. You open Drive and everything is where it should be.</span></div></li>
+      </ol>
+    </div>
+  </section>
+ 
+  <!-- FINAL CTA (same single action) -->
+  <section class="final">
+    <div class="wrap">
+      <h2>Want your Drive to organize itself?</h2>
+      <p>Tell me a little about your files and I'll tell you exactly how I'd set this up for you.</p>
+      <a class="cta-btn" href="mailto:joanneliszewski@gmail.com?subject=Organize%20my%20Google%20Drive">Email me about your Drive</a>
+    </div>
+  </section>
+ 
+  <footer>
+    Built by <a href="https://j-lportfolio-omega.vercel.app/">Joanne Liszewski</a> · joanneliszewski@gmail.com · Phoenix, Arizona
+  </footer>
+ 
+</body>
+</html>
